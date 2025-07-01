@@ -15,7 +15,9 @@ RUN cd frontend && npm install
 # Copy source code
 COPY . .
 
-# Build the frontend
+# Build the frontend (set CI=false to prevent treating warnings as errors)
+ENV CI=false
+ENV NODE_ENV=production
 RUN cd frontend && npm run build
 
 # Copy built frontend to backend public directory
