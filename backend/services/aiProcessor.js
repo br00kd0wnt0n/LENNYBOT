@@ -14,24 +14,21 @@ class AIProcessor {
 
   async analyzeMessage(messageDoc) {
     try {
-      const analysis = await this.processWithAI(messageDoc);
+      // Temporarily disable AI processing to fix Railway build
+      // TODO: Re-enable after fixing the data parsing issues
+      logger.info(`AI analysis skipped for message ${messageDoc.slackMessageId} (temporarily disabled)`);
       
-      // Validate and clean the analysis data
-      const cleanedAnalysis = this.validateAndCleanAnalysis(analysis);
-      
-      // Save analysis back to message document
+      // Mark as processed with empty analysis to prevent reprocessing
       await Message.findByIdAndUpdate(messageDoc._id, {
         'analysis.processed': true,
         'analysis.processedAt': new Date(),
-        'analysis.sentiment': cleanedAnalysis.sentiment,
-        'analysis.entities': cleanedAnalysis.entities,
-        'analysis.intent': cleanedAnalysis.intent,
-        'analysis.priority': cleanedAnalysis.priority,
-        'analysis.deliverables': cleanedAnalysis.deliverables,
-        'analysis.actionItems': cleanedAnalysis.actionItems
+        'analysis.sentiment': { score: 0, label: 'neutral', confidence: 0 },
+        'analysis.entities': [],
+        'analysis.intent': { category: 'update', confidence: 0 },
+        'analysis.priority': { level: 'low', reasons: [] },
+        'analysis.deliverables': [],
+        'analysis.actionItems': []
       });
-
-      logger.info(`AI analysis completed for message ${messageDoc.slackMessageId}`);
       
     } catch (error) {
       logger.error('AI analysis failed:', error);
