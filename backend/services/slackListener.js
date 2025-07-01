@@ -110,6 +110,22 @@ class SlackListener {
 
   async start() {
     try {
+      // Add error handlers to prevent crashes
+      this.app.error((error) => {
+        logger.error('Slack app error:', error);
+      });
+      
+      // Add connection error handling
+      if (this.app.client.socketMode) {
+        this.app.client.socketMode.on('unable_to_socket_mode_start', (error) => {
+          logger.error('Unable to start socket mode:', error);
+        });
+        
+        this.app.client.socketMode.on('disconnect', (error) => {
+          logger.warn('Socket mode disconnected:', error);
+        });
+      }
+      
       await this.app.start();
       logger.info('Slack listener started successfully');
     } catch (error) {

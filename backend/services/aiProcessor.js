@@ -57,9 +57,18 @@ class AIProcessor {
       };
     }
 
-    // Helper to robustly parse JS-like arrays
+    // Helper to robustly parse JS-like arrays and ensure proper object structure
     function robustParseArray(val) {
-      if (Array.isArray(val)) return val;
+      if (Array.isArray(val)) {
+        // Ensure each item has the required structure
+        return val.map(item => {
+          if (typeof item === 'object' && item !== null) {
+            return item;
+          }
+          return null;
+        }).filter(item => item !== null);
+      }
+      
       if (typeof val !== 'string') return [];
       
       let arr = [];
@@ -111,20 +120,50 @@ class AIProcessor {
         }
       }
       
-      return Array.isArray(arr) ? arr : [arr];
+      // Ensure we return an array of proper objects
+      if (Array.isArray(arr)) {
+        return arr.map(item => {
+          if (typeof item === 'object' && item !== null) {
+            return item;
+          }
+          return null;
+        }).filter(item => item !== null);
+      }
+      
+      return [];
     }
 
-    // Clean entities
+    // Clean entities - ensure they have type, value, and confidence
     if (analysis.entities) {
-      cleaned.entities = robustParseArray(analysis.entities);
+      const parsedEntities = robustParseArray(analysis.entities);
+      cleaned.entities = parsedEntities.map(entity => ({
+        type: entity.type || 'unknown',
+        value: entity.value || '',
+        confidence: parseFloat(entity.confidence) || 0
+      }));
     }
-    // Clean deliverables
+    
+    // Clean deliverables - ensure they have the required structure
     if (analysis.deliverables) {
-      cleaned.deliverables = robustParseArray(analysis.deliverables);
+      const parsedDeliverables = robustParseArray(analysis.deliverables);
+      cleaned.deliverables = parsedDeliverables.map(deliverable => ({
+        name: deliverable.name || deliverable.value || '',
+        status: deliverable.status || 'concept',
+        assignee: deliverable.assignee || '',
+        deadline: deliverable.deadline ? new Date(deliverable.deadline) : null,
+        confidence: parseFloat(deliverable.confidence) || 0
+      }));
     }
-    // Clean actionItems
+    
+    // Clean actionItems - ensure they have the required structure
     if (analysis.actionItems) {
-      cleaned.actionItems = robustParseArray(analysis.actionItems);
+      const parsedActionItems = robustParseArray(analysis.actionItems);
+      cleaned.actionItems = parsedActionItems.map(actionItem => ({
+        task: actionItem.task || actionItem.value || '',
+        assignee: actionItem.assignee || '',
+        deadline: actionItem.deadline ? new Date(actionItem.deadline) : null,
+        confidence: parseFloat(actionItem.confidence) || 0
+      }));
     }
 
     // Clean intent
@@ -134,6 +173,7 @@ class AIProcessor {
         confidence: parseFloat(analysis.intent.confidence) || 0
       };
     }
+    
     // Clean priority
     if (analysis.priority) {
       cleaned.priority = {
@@ -141,6 +181,7 @@ class AIProcessor {
         reasons: Array.isArray(analysis.priority.reasons) ? analysis.priority.reasons : []
       };
     }
+    
     return cleaned;
   }
 
