@@ -7,7 +7,7 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "nodemon backend/server.js",
     "client": "cd frontend && npm start",
-    "build": "npm run install-all && cd frontend && npm run build",
+    "build": "npm run install-all && cd frontend && npm run build && cd .. && mkdir -p backend/public && cp -r frontend/build/* backend/public/",
     "build:prod": "npm run install-all && cd frontend && npm run build && cd .. && npm run copy-build",
     "build:frontend": "cd frontend && npm install && npm run build",
     "build:copy": "mkdir -p backend/public && cp -r frontend/build/* backend/public/",
