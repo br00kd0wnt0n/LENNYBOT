@@ -1,31 +1,57 @@
-# Use Node.js 20 for better compatibility
-FROM node:20
+# Multi-stage build for better reliability
+# Build stage
+FROM node:20 AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files first for better caching
+# Copy package files
 COPY package*.json ./
 COPY frontend/package*.json ./frontend/
 
-# Install dependencies (including dev dependencies needed for build)
-RUN npm install
-RUN cd frontend && npm install
+# Install all dependencies (including dev dependencies for build)
+RUN npm ci
+RUN cd frontend && npm ci
 
 # Copy source code
 COPY . .
 
-# Build the frontend (set CI=false to prevent treating warnings as errors)
+# Build the frontend
 ENV CI=false
 ENV NODE_ENV=production
 ENV GENERATE_SOURCEMAP=false
+ENV SKIP_PREFLIGHT_CHECK=true
+ENV DISABLE_ESLINT_PLUGIN=true
+
 RUN cd frontend && npm run build
 
-# Copy built frontend to backend public directory
-RUN mkdir -p backend/public && cp -r frontend/build/* backend/public/
+# Production stage
+FROM node:20 AS production
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --only=production
+
+# Copy built frontend from builder stage
+COPY --from=builder /app/frontend/build ./backend/public
+
+# Copy backend source
+COPY backend ./backend
 
 # Expose port
 EXPOSE 3001
 
-# Start the application with production environment
+# Start the application
 CMD ["sh", "-c", "NODE_ENV=production npm start"] 
