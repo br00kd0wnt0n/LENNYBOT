@@ -1,6 +1,5 @@
-# Multi-stage build for better reliability
-# Build stage
-FROM node:20 AS builder
+# Use Node.js 20 for better compatibility
+FROM node:20
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -12,46 +11,32 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY package*.json ./
 COPY frontend/package*.json ./frontend/
 
-# Install all dependencies (including dev dependencies for build)
+# Install dependencies (including dev dependencies needed for build)
 RUN npm ci
 RUN cd frontend && npm ci
 
 # Copy source code
 COPY . .
 
-# Build the frontend
+# Set build environment variables
 ENV CI=false
 ENV NODE_ENV=production
 ENV GENERATE_SOURCEMAP=false
 ENV SKIP_PREFLIGHT_CHECK=true
 ENV DISABLE_ESLINT_PLUGIN=true
 
-RUN cd frontend && npm run build
+# Build the frontend with explicit React Scripts build
+RUN cd frontend && npx react-scripts build
 
-# Production stage
-FROM node:20 AS production
-
-# Set working directory
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install only production dependencies
-RUN npm ci --only=production
-
-# Copy built frontend from builder stage
-COPY --from=builder /app/frontend/build ./backend/public
-
-# Copy backend source
-COPY backend ./backend
+# Copy built frontend to backend public directory
+RUN mkdir -p backend/public && cp -r frontend/build/* backend/public/
 
 # Expose port
 EXPOSE 3001
 
-# Start the application
+# Start the application with production environment
 CMD ["sh", "-c", "NODE_ENV=production npm start"] 
