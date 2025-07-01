@@ -63,8 +63,12 @@ app.get('/health', (req, res) => {
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'public')));
   
-  // Handle React routing, return all requests to React app
-  app.get('*', (req, res) => {
+  // Handle React routing, return all requests to React app (except API routes)
+  app.get('*', (req, res, next) => {
+    // Skip API routes
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });
 }

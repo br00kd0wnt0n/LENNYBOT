@@ -1,5 +1,5 @@
-# Use Node.js 20 Alpine for smaller image size
-FROM node:20-alpine
+# Use Node.js 20 for better compatibility
+FROM node:20
 
 # Set working directory
 WORKDIR /app
@@ -18,6 +18,7 @@ COPY . .
 # Build the frontend (set CI=false to prevent treating warnings as errors)
 ENV CI=false
 ENV NODE_ENV=production
+ENV GENERATE_SOURCEMAP=false
 RUN cd frontend && npm run build
 
 # Copy built frontend to backend public directory
@@ -26,5 +27,5 @@ RUN mkdir -p backend/public && cp -r frontend/build/* backend/public/
 # Expose port
 EXPOSE 3001
 
-# Start the application
-CMD ["npm", "start"] 
+# Start the application with production environment
+CMD ["sh", "-c", "NODE_ENV=production npm start"] 
